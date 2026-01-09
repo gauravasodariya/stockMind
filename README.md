@@ -45,6 +45,14 @@ AI-powered inventory management system that forecasts inventory needs based on s
 - **OpenAI SDK**: AI-powered forecasting *(Replaced Claude as per requirement flexibility)*
 - **Multer**: File upload middleware
 
+### Images
+<img width="1915" height="867" alt="image" src="https://github.com/user-attachments/assets/39d9acb5-991b-4fd6-a81f-06a304a9a368" />
+<img width="1918" height="869" alt="image" src="https://github.com/user-attachments/assets/80d9e6fa-a0dd-43f8-a420-52d77581c569" />
+<img width="1917" height="867" alt="image" src="https://github.com/user-attachments/assets/512bcfab-93ed-4d88-8f62-43a392f5f8bd" />
+<img width="1904" height="870" alt="image" src="https://github.com/user-attachments/assets/ad24d281-0ee4-4448-855c-2156bf7fd0d4" />
+<img width="1918" height="865" alt="image" src="https://github.com/user-attachments/assets/eaf91ced-1f0b-464e-9c33-e95231971534" />
+<img width="1917" height="868" alt="image" src="https://github.com/user-attachments/assets/2f43f12a-8480-4126-a10c-054f396843ac" />
+
 ## 📦 Installation
 
 ### Prerequisites
@@ -144,8 +152,6 @@ Inventory-forcast/
 │   │   └── index.css             # Global styles
 │   └── package.json
 ```
-
-<img width="1918" height="866" alt="image" src="https://github.com/user-attachments/assets/60bb3f9a-8d7c-41ed-862c-4ad7dff3d7f2" />
 
 ### Environment Variables
 
