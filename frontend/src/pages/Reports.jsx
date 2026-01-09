@@ -68,17 +68,22 @@ function Reports() {
 
       const result = await response.json();
 
+      // Handle both response formats
+      const reportData = result.report || result;
+
       const newReport = {
-        id: result.id || reports.length + 1,
+        id: reportData.id || reports.length + 1,
         name:
-          result.name ||
+          reportData.name ||
           `${
             reportType.charAt(0).toUpperCase() + reportType.slice(1)
           } Report - ${new Date().toLocaleDateString()}`,
-        type: reportType.charAt(0).toUpperCase() + reportType.slice(1),
-        created: result.created || new Date().toISOString().split("T")[0],
-        period: `${startDate} to ${endDate}`,
-        status: "Ready",
+        type:
+          reportData.type ||
+          reportType.charAt(0).toUpperCase() + reportType.slice(1),
+        created: reportData.created || new Date().toISOString().split("T")[0],
+        period: reportData.period || `${startDate} to ${endDate}`,
+        status: reportData.status || "Ready",
       };
       setReports([newReport, ...reports]);
       showSuccessToast(`Report generated successfully! ${newReport.name}`);
@@ -188,8 +193,8 @@ function Reports() {
 
         const tableX = 15;
         const tableWidth = pageWidth - 30;
-        const colWidth1 = tableWidth * 0.65; 
-        const colWidth2 = tableWidth * 0.35; 
+        const colWidth1 = tableWidth * 0.65;
+        const colWidth2 = tableWidth * 0.35;
         const rowHeight = 7;
 
         pdf.setFillColor(...colors.primary);
