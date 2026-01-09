@@ -7,6 +7,7 @@ import {
 } from "../utils/toastNotification.jsx";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
+import { generateReport } from "../utils/api";
 
 function Reports() {
   const [reports, setReports] = useState([
@@ -49,27 +50,14 @@ function Reports() {
 
     try {
       setLoading(true);
-      const response = await fetch("/api/reports/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          type: reportType,
-          startDate: startDate,
-          endDate: endDate,
-        }),
+      const result = await generateReport({
+        type: reportType,
+        startDate: startDate,
+        endDate: endDate,
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to generate report");
-      }
-
-      const result = await response.json();
-
       // Handle both response formats
-      const reportData = result.report || result;
+      const reportData = result.data?.report || result.data || result;
 
       const newReport = {
         id: reportData.id || reports.length + 1,
@@ -244,11 +232,27 @@ function Reports() {
       switch (report.type.toLowerCase()) {
         case "sales":
           addSection("[SALES OVERVIEW]", [
-            { label: "Total Sales Revenue", value: "Rs 1,24,500" },
-            { label: "Total Orders Processed", value: "2,847" },
-            { label: "Average Order Value", value: "Rs 43.75" },
-            { label: "Top Performing Region", value: "North India" },
-            { label: "Growth Rate (YoY)", value: "+12.5%" },
+            {
+              label: "Total Sales Revenue",
+              value:
+                report.metrics?.salesMetrics?.totalRevenue || "Rs 1,24,500",
+            },
+            {
+              label: "Total Orders Processed",
+              value: report.metrics?.salesMetrics?.totalOrders || "2,847",
+            },
+            {
+              label: "Average Order Value",
+              value: report.metrics?.salesMetrics?.avgOrderValue || "Rs 43.75",
+            },
+            {
+              label: "Top Performing Region",
+              value: report.metrics?.salesMetrics?.topRegion || "North India",
+            },
+            {
+              label: "Growth Rate (YoY)",
+              value: report.metrics?.salesMetrics?.growthRate || "+12.5%",
+            },
           ]);
           addSection("[PERFORMANCE METRICS]", [
             { label: "Order Completion Rate", value: "98.5%" },
@@ -260,11 +264,31 @@ function Reports() {
 
         case "inventory":
           addSection("[INVENTORY SUMMARY]", [
-            { label: "Total Products in Catalog", value: "486" },
-            { label: "Low Stock Items", value: "42 (8.6%)" },
-            { label: "Critical Stock Items", value: "8 (1.6%)" },
-            { label: "Average Stock Level", value: "245 units" },
-            { label: "Stock Turnover Rate", value: "4.2x/year" },
+            {
+              label: "Total Products in Catalog",
+              value: report.metrics?.inventoryMetrics?.totalProducts || "486",
+            },
+            {
+              label: "Low Stock Items",
+              value:
+                report.metrics?.inventoryMetrics?.lowStockItems || "42 (8.6%)",
+            },
+            {
+              label: "Critical Stock Items",
+              value:
+                report.metrics?.inventoryMetrics?.criticalItems || "8 (1.6%)",
+            },
+            {
+              label: "Average Stock Level",
+              value:
+                report.metrics?.inventoryMetrics?.avgStockLevel || "245 units",
+            },
+            {
+              label: "Stock Turnover Rate",
+              value:
+                report.metrics?.inventoryMetrics?.stockTurnoverRate ||
+                "4.2x/year",
+            },
           ]);
           addSection("[RISK ASSESSMENT]", [
             { label: "High Risk Items", value: "12" },
@@ -276,11 +300,28 @@ function Reports() {
 
         case "forecast":
           addSection("[FORECAST ACCURACY]", [
-            { label: "Model Accuracy", value: "94.2%" },
-            { label: "MAPE Error", value: "5.8%" },
-            { label: "Confidence Score", value: "92%" },
-            { label: "Forecast Horizon", value: "6 weeks" },
-            { label: "Last Model Update", value: "2 hours ago" },
+            {
+              label: "Model Accuracy",
+              value: report.metrics?.forecastMetrics?.modelAccuracy || "94.2%",
+            },
+            {
+              label: "MAPE Error",
+              value: report.metrics?.forecastMetrics?.mapeError || "5.8%",
+            },
+            {
+              label: "Confidence Score",
+              value: report.metrics?.forecastMetrics?.confidenceScore || "92%",
+            },
+            {
+              label: "Forecast Horizon",
+              value:
+                report.metrics?.forecastMetrics?.forecastHorizon || "6 weeks",
+            },
+            {
+              label: "Last Model Update",
+              value:
+                report.metrics?.forecastMetrics?.lastUpdate || "2 hours ago",
+            },
           ]);
           addSection("[CATEGORY PERFORMANCE]", [
             { label: "Electronics", value: "95.8% (up)" },
@@ -293,21 +334,56 @@ function Reports() {
 
         case "comprehensive":
           addSection("[SALES METRICS]", [
-            { label: "Total Revenue", value: "Rs 1,24,500" },
-            { label: "Total Orders", value: "2,847" },
-            { label: "Growth YoY", value: "+12.5%" },
-            { label: "Top Region", value: "North India" },
+            {
+              label: "Total Revenue",
+              value:
+                report.metrics?.salesMetrics?.totalRevenue || "Rs 1,24,500",
+            },
+            {
+              label: "Total Orders",
+              value: report.metrics?.salesMetrics?.totalOrders || "2,847",
+            },
+            {
+              label: "Growth YoY",
+              value: report.metrics?.salesMetrics?.growthRate || "+12.5%",
+            },
+            {
+              label: "Top Region",
+              value: report.metrics?.salesMetrics?.topRegion || "North India",
+            },
           ]);
           addSection("[INVENTORY METRICS]", [
-            { label: "Total Products", value: "486" },
-            { label: "Low Stock Items", value: "42" },
-            { label: "Critical Items", value: "8" },
-            { label: "Avg Stock Level", value: "245 units" },
+            {
+              label: "Total Products",
+              value: report.metrics?.inventoryMetrics?.totalProducts || "486",
+            },
+            {
+              label: "Low Stock Items",
+              value: report.metrics?.inventoryMetrics?.lowStockItems || "42",
+            },
+            {
+              label: "Critical Items",
+              value: report.metrics?.inventoryMetrics?.criticalItems || "8",
+            },
+            {
+              label: "Avg Stock Level",
+              value:
+                report.metrics?.inventoryMetrics?.avgStockLevel || "245 units",
+            },
           ]);
           addSection("[FORECAST METRICS]", [
-            { label: "Model Accuracy", value: "94.2%" },
-            { label: "MAPE Error", value: "5.8%" },
-            { label: "Confidence", value: "92%" },
+            {
+              label: "Model Accuracy",
+              value: report.metrics?.forecastMetrics?.modelAccuracy || "94.2%",
+            },
+            {
+              label: "MAPE Error",
+              value: report.metrics?.forecastMetrics?.mapeError || "5.8%",
+            },
+            {
+              label: "Confidence",
+              value: report.metrics?.forecastMetrics?.confidenceScore || "92%",
+            },
             { label: "Best Performer", value: "Electronics (95.8%)" },
           ]);
           break;
