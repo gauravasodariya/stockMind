@@ -167,4 +167,4 @@ VITE_ENABLE_PRODUCT_MANAGEMENT=true
 MIT License
 
 
-**Built with ❤️ using React, Node.js, MongoDB, and OpenAI**
+**Built with ❤️ Gaurav
