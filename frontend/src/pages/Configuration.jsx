@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../utils/toastNotification.jsx";
 import ChartCard from "../components/ChartCard";
 
 function Configuration() {
@@ -15,12 +19,12 @@ function Configuration() {
       localStorage.setItem("lowStockThreshold", lowStockThreshold);
       localStorage.setItem("forecastRiskThreshold", forecastRiskThreshold);
       setSaved(true);
-      alert(
-        `Thresholds saved successfully!\nLow Stock: ${lowStockThreshold}%\nForecast Risk: ${forecastRiskThreshold}%`
+      showSuccessToast(
+        `Thresholds saved successfully! Low Stock: ${lowStockThreshold}% | Forecast Risk: ${forecastRiskThreshold}%`
       );
       setTimeout(() => setSaved(false), 3000);
     } catch (error) {
-      alert("Failed to save thresholds");
+      showErrorToast("Failed to save thresholds");
     }
   };
   return (

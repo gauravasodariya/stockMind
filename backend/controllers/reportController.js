@@ -2,19 +2,28 @@ let reports = [];
 
 export const generateReport = (req, res) => {
   try {
-    const { title, sections, products } = req.body;
+    const { type, startDate, endDate, title, sections, products } = req.body;
 
-    if (!title) {
-      return res.status(400).json({ error: "Report title is required" });
-    }
+    // Handle both old and new format
+    const reportTitle =
+      title ||
+      `${
+        type ? type.charAt(0).toUpperCase() + type.slice(1) : "General"
+      } Report - ${new Date().toLocaleDateString()}`;
 
     const report = {
       id: Date.now(),
-      title,
+      name: reportTitle,
+      title: reportTitle,
+      type: type ? type.charAt(0).toUpperCase() + type.slice(1) : "General",
+      created: new Date().toISOString().split("T")[0],
+      period: startDate && endDate ? `${startDate} to ${endDate}` : "N/A",
+      startDate: startDate || null,
+      endDate: endDate || null,
       sections: sections || {},
       products: products || [],
       generatedAt: new Date(),
-      status: "completed",
+      status: "Ready",
     };
 
     reports.push(report);
@@ -24,6 +33,7 @@ export const generateReport = (req, res) => {
       report,
     });
   } catch (error) {
+    console.error("Report generation error:", error);
     res.status(500).json({ error: error.message });
   }
 };

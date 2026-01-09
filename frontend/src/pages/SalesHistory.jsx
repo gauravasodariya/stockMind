@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Download, Filter } from "lucide-react";
+import { showErrorToast } from "../utils/toastNotification.jsx";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
 
@@ -70,7 +71,7 @@ function SalesHistory() {
 
   const handleExportCSV = () => {
     if (!filteredSales.length) {
-      alert("No sales records to export for the selected filters.");
+      showErrorToast("No sales records to export for the selected filters.");
       return;
     }
 

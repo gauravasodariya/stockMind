@@ -89,3 +89,54 @@
     @apply w-full px-3 py-2.5 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-colors bg-white dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100;
   }
 }
+
+/* Custom Toast Styles */
+.Toastify__toast-container {
+  @apply text-sm font-medium;
+}
+
+.Toastify__toast {
+  @apply rounded-xl shadow-lg backdrop-blur-sm border p-4 min-h-max;
+  font-family: inherit;
+  margin-bottom: 0.75rem;
+}
+
+.Toastify__toast--success {
+  @apply bg-emerald-50 border-emerald-200 text-emerald-900 dark:bg-emerald-900/30 dark:border-emerald-700 dark:text-emerald-200;
+}
+
+.Toastify__toast--error {
+  @apply bg-red-50 border-red-200 text-red-900 dark:bg-red-900/30 dark:border-red-700 dark:text-red-200;
+}
+
+.Toastify__toast--warning {
+  @apply bg-amber-50 border-amber-200 text-amber-900 dark:bg-amber-900/30 dark:border-amber-700 dark:text-amber-200;
+}
+
+.Toastify__toast--info {
+  @apply bg-blue-50 border-blue-200 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-200;
+}
+
+.Toastify__toast-body {
+  @apply flex items-center gap-3 p-0;
+}
+
+.Toastify__progress-bar {
+  @apply h-1;
+}
+
+.Toastify__toast--success .Toastify__progress-bar {
+  @apply bg-emerald-500;
+}
+
+.Toastify__toast--error .Toastify__progress-bar {
+  @apply bg-red-500;
+}
+
+.Toastify__toast--warning .Toastify__progress-bar {
+  @apply bg-amber-500;
+}
+
+.Toastify__toast--info .Toastify__progress-bar {
+  @apply bg-blue-500;
+}

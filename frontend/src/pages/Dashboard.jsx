@@ -12,6 +12,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../utils/toastNotification.jsx";
 import StatCard from "../components/StatCard";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
@@ -67,8 +71,7 @@ function Dashboard() {
           }).format(data.avgOrderValue || 0),
           avgOrderChange: Number((data.avgOrderChange || 0).toFixed(1)),
         });
-      } catch (e) {
-      }
+      } catch (e) {}
     };
 
     const loadTimeseries = async () => {
@@ -85,8 +88,7 @@ function Dashboard() {
             }))
           );
         }
-      } catch (e) {
-      }
+      } catch (e) {}
     };
 
     loadSummary();
@@ -154,10 +156,12 @@ function Dashboard() {
         new Date().toISOString().split("T")[0]
       }.pdf`;
       pdf.save(filename);
-      alert(`Dashboard exported as PDF successfully!\nFile: ${filename}`);
+      showSuccessToast(
+        `Dashboard exported as PDF successfully! File: ${filename}`
+      );
     } catch (error) {
       console.error("PDF export error:", error);
-      alert("Failed to export PDF: " + error.message);
+      showErrorToast("Failed to export PDF: " + error.message);
     } finally {
       setLoading(false);
     }
@@ -179,7 +183,7 @@ function Dashboard() {
 
         const lines = csv.split("\n").filter((line) => line.trim());
         if (lines.length < 2) {
-          alert("CSV file must contain headers and data rows");
+          showErrorToast("CSV file must contain headers and data rows");
           return;
         }
 
@@ -205,15 +209,15 @@ function Dashboard() {
 
         const result = await response.json();
         if (response.ok) {
-          alert(
-            `CSV imported successfully!\nFile: ${file.name}\nRecords: ${data.length} rows imported to database`
+          showSuccessToast(
+            `CSV imported successfully! ${data.length} rows imported to database`
           );
         } else {
-          alert(`Import failed: ${result.error || "Unknown error"}`);
+          showErrorToast(`Import failed: ${result.error || "Unknown error"}`);
         }
       } catch (error) {
         console.error("CSV import error:", error);
-        alert("Failed to import CSV: " + error.message);
+        showErrorToast("Failed to import CSV: " + error.message);
       } finally {
         setLoading(false);
       }

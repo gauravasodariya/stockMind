@@ -10,9 +10,13 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../utils/toastNotification.jsx";
 import ChartCard from "../components/ChartCard";
 import StatCard from "../components/StatCard";
-// DataTable not used on this page; removed to reduce bundle size
 
 function Forecasting() {
   const [forecastData, setForecastData] = useState([
@@ -102,14 +106,317 @@ function Forecasting() {
       console.log(
         `Generating forecast for ${selectedRegion}, ${selectedCategory}, ${selectedPeriod}`
       );
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      alert(
-        `Forecast generated!\nRegion: ${selectedRegion}\nCategory: ${selectedCategory}\nPeriod: ${selectedPeriod}`
+
+      const response = await fetch("/api/forecast/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          region: selectedRegion,
+          category: selectedCategory,
+          horizon: selectedPeriod,
+          historicalData: forecastData,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate forecast");
+      }
+
+      const result = await response.json();
+      console.log("Forecast generated:", result);
+
+      showSuccessToast(
+        `Forecast generated successfully!\nRegion: ${selectedRegion}\nCategory: ${selectedCategory}\nPeriod: ${selectedPeriod}`
       );
     } catch (error) {
-      alert("Failed to generate forecast");
+      console.error("Forecast generation error:", error);
+      showErrorToast(error.message || "Failed to generate forecast");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExportForecast = () => {
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      let yPosition = 20;
+
+      const colors = {
+        primary: [106, 27, 154],
+        accent: [171, 71, 188],
+        dark: [74, 20, 140],
+        light: [243, 229, 245],
+      };
+
+      // Header
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.setTextColor(...colors.dark);
+      pdf.text("INVENTORY FORECAST SYSTEM", pageWidth / 2, yPosition, {
+        align: "center",
+      });
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Demand Forecasting Report", pageWidth / 2, yPosition + 6, {
+        align: "center",
+      });
+
+      yPosition += 14;
+      pdf.setDrawColor(...colors.primary);
+      pdf.setLineWidth(0.8);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      yPosition += 8;
+
+      // Title
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("6-Week Demand Forecast", 15, yPosition);
+      yPosition += 10;
+
+      // Details Box
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+
+      pdf.setFillColor(...colors.light);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(15, yPosition, pageWidth - 30, 22, "FD");
+
+      const details = [
+        `Generated: ${new Date().toLocaleString()}`,
+        `Region: ${selectedRegion}`,
+        `Category: ${selectedCategory}`,
+        `Period: ${selectedPeriod}`,
+        `Model Accuracy: ${modelMetrics.accuracy} | Confidence: ${modelMetrics.confidence}`,
+      ];
+
+      let detailY = yPosition + 3;
+      details.forEach((detail) => {
+        pdf.text(detail, 18, detailY);
+        detailY += 4;
+      });
+      yPosition += 27;
+
+      // Forecast Data Table
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("📊 Forecast Data", 15, yPosition);
+      yPosition += 6;
+
+      // Table Headers
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFillColor(...colors.primary);
+
+      const colWidths = {
+        week: 25,
+        predicted: 30,
+        lower: 30,
+        upper: 30,
+      };
+      const startX = 15;
+      let currentX = startX;
+
+      pdf.rect(currentX, yPosition - 4, colWidths.week, 5, "F");
+      pdf.text("Week", currentX + 2, yPosition);
+      currentX += colWidths.week;
+
+      pdf.rect(currentX, yPosition - 4, colWidths.predicted, 5, "F");
+      pdf.text("Predicted", currentX + 2, yPosition);
+      currentX += colWidths.predicted;
+
+      pdf.rect(currentX, yPosition - 4, colWidths.lower, 5, "F");
+      pdf.text("Lower Bound", currentX + 2, yPosition);
+      currentX += colWidths.lower;
+
+      pdf.rect(currentX, yPosition - 4, colWidths.upper, 5, "F");
+      pdf.text("Upper Bound", currentX + 2, yPosition);
+
+      yPosition += 6;
+
+      // Table Data
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(50, 50, 50);
+
+      forecastData.forEach((row, idx) => {
+        if (yPosition > pageHeight - 40) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        // Alternating row background
+        if (idx % 2 === 0) {
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(startX, yPosition - 3, pageWidth - 30, 4.5, "F");
+        }
+
+        currentX = startX;
+        pdf.text(row.week, currentX + 2, yPosition);
+        currentX += colWidths.week;
+        pdf.text(String(row.predicted), currentX + 2, yPosition);
+        currentX += colWidths.predicted;
+        pdf.text(String(row.lower), currentX + 2, yPosition);
+        currentX += colWidths.lower;
+        pdf.text(String(row.upper), currentX + 2, yPosition);
+
+        yPosition += 4.5;
+      });
+
+      yPosition += 6;
+
+      // Model Metrics Section
+      if (yPosition > pageHeight - 45) {
+        pdf.addPage();
+        yPosition = 15;
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("🤖 Model Performance Metrics", 15, yPosition);
+      yPosition += 6;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(60, 60, 60);
+
+      const metrics = [
+        { label: "Model Accuracy", value: modelMetrics.accuracy },
+        { label: "MAPE Error", value: modelMetrics.mape },
+        { label: "Confidence Score", value: modelMetrics.confidence },
+        { label: "Last Updated", value: modelMetrics.updatedAt },
+      ];
+
+      metrics.forEach((metric, idx) => {
+        if (yPosition > pageHeight - 25) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        if (idx % 2 === 0) {
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+        }
+
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(metric.label, 18, yPosition);
+        pdf.setTextColor(...colors.accent);
+        pdf.text(metric.value, pageWidth - 25, yPosition, { align: "right" });
+        yPosition += 5;
+      });
+
+      yPosition += 6;
+
+      // Category Accuracy
+      if (yPosition > pageHeight - 45) {
+        pdf.addPage();
+        yPosition = 15;
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("📈 Category Accuracy Performance", 15, yPosition);
+      yPosition += 6;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(60, 60, 60);
+
+      categoryAccuracy.forEach((cat, idx) => {
+        if (yPosition > pageHeight - 25) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        if (idx % 2 === 0) {
+          pdf.setFillColor(250, 250, 250);
+          pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+        }
+
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(cat.category, 18, yPosition);
+        pdf.setTextColor(...colors.accent);
+        pdf.text(`${cat.accuracy} ${cat.trend}`, pageWidth - 25, yPosition, {
+          align: "right",
+        });
+        yPosition += 5;
+      });
+
+      yPosition += 6;
+
+      // AI Insights Section
+      if (yPosition > pageHeight - 45) {
+        pdf.addPage();
+        yPosition = 15;
+      }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("💡 AI-Driven Insights", 15, yPosition);
+      yPosition += 6;
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(60, 60, 60);
+
+      insights.forEach((insight) => {
+        if (yPosition > pageHeight - 30) {
+          pdf.addPage();
+          yPosition = 15;
+        }
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text(`${insight.icon} ${insight.title}`, 18, yPosition);
+        yPosition += 4;
+
+        pdf.setFont("helvetica", "normal");
+        const lines = pdf.splitTextToSize(insight.message, pageWidth - 40);
+        pdf.text(lines, 20, yPosition);
+        yPosition += lines.length * 3.5 + 3;
+      });
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
+      pdf.text(
+        "This report was automatically generated by the Inventory Forecast System",
+        pageWidth / 2,
+        pageHeight - 7,
+        { align: "center" }
+      );
+      pdf.text(
+        `Generated: ${new Date().toLocaleDateString()} | ©2026 All Rights Reserved`,
+        pageWidth / 2,
+        pageHeight - 3,
+        { align: "center" }
+      );
+
+      // Save PDF
+      const filename = `forecast-${selectedRegion
+        .replace(/\s+/g, "-")
+        .toLowerCase()}-${new Date().toISOString().split("T")[0]}.pdf`;
+      pdf.save(filename);
+      showSuccessToast(
+        `Forecast report exported successfully! File: ${filename}`
+      );
+    } catch (error) {
+      console.error("Export error:", error);
+      showErrorToast(`Failed to export forecast: ${error.message}`);
     }
   };
 
@@ -125,7 +432,10 @@ function Forecasting() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3 items-center">
-          <button className="btn btn-secondary flex items-center gap-2">
+          <button
+            onClick={handleExportForecast}
+            className="btn btn-secondary flex items-center gap-2"
+          >
             <FileText size={18} />
             Export Report
           </button>
@@ -133,19 +443,10 @@ function Forecasting() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatCard
-          title="Model Accuracy"
-          value={modelMetrics.accuracy}
-        />
-        <StatCard title="MAPE Error" value={modelMetrics.mape}  />
-        <StatCard
-          title="Confidence Score"
-          value={modelMetrics.confidence}
-        />
-        <StatCard
-          title="Last Updated"
-          value={modelMetrics.updatedAt}
-        />
+        <StatCard title="Model Accuracy" value={modelMetrics.accuracy} />
+        <StatCard title="MAPE Error" value={modelMetrics.mape} />
+        <StatCard title="Confidence Score" value={modelMetrics.confidence} />
+        <StatCard title="Last Updated" value={modelMetrics.updatedAt} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
@@ -237,9 +538,16 @@ function Forecasting() {
             </thead>
             <tbody>
               {categoryAccuracy.map((item) => (
-                <tr key={item.category} className="hover:bg-slate-50 dark:hover:bg-slate-800/80">
-                  <td className="text-gray-900 dark:text-slate-100">{item.category}</td>
-                  <td className="text-gray-600 dark:text-slate-300">{item.accuracy}</td>
+                <tr
+                  key={item.category}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-800/80"
+                >
+                  <td className="text-gray-900 dark:text-slate-100">
+                    {item.category}
+                  </td>
+                  <td className="text-gray-600 dark:text-slate-300">
+                    {item.accuracy}
+                  </td>
                   <td className={`font-semibold ${item.color}`}>
                     {item.trend}
                   </td>
@@ -309,7 +617,9 @@ function Forecasting() {
           disabled={loading}
           className="btn btn-primary mt-4 disabled:opacity-50"
         >
-          {loading ? "Generating..." : `Generate Forecast for ${selectedRegion}`}
+          {loading
+            ? "Generating..."
+            : `Generate Forecast for ${selectedRegion}`}
         </button>
       </div>
     </div>

@@ -5,6 +5,8 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -23,6 +25,17 @@ function App() {
   return (
     <ThemeProvider>
       <Router>
+        <ToastContainer
+          position="top-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop={true}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
         <div className="flex h-screen bg-gray-100 dark:bg-slate-950">
           <Sidebar user={currentUser} />
           <main className="flex-1 overflow-y-auto ml-64 transition-colors">

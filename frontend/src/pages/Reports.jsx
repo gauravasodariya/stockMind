@@ -1,6 +1,10 @@
 import React, { useState } from "react";
 import { FileText, Download } from "lucide-react";
 import jsPDF from "jspdf";
+import {
+  showSuccessToast,
+  showErrorToast,
+} from "../utils/toastNotification.jsx";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
 
@@ -39,28 +43,50 @@ function Reports() {
 
   const handleGenerateReport = async () => {
     if (!startDate || !endDate) {
-      alert("Please select both start and end dates");
+      showErrorToast("Please select both start and end dates");
       return;
     }
 
     try {
       setLoading(true);
+      const response = await fetch("/api/reports/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: reportType,
+          startDate: startDate,
+          endDate: endDate,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate report");
+      }
+
+      const result = await response.json();
+
       const newReport = {
-        id: reports.length + 1,
-        name: `${
-          reportType.charAt(0).toUpperCase() + reportType.slice(1)
-        } Report - ${new Date().toLocaleDateString()}`,
+        id: result.id || reports.length + 1,
+        name:
+          result.name ||
+          `${
+            reportType.charAt(0).toUpperCase() + reportType.slice(1)
+          } Report - ${new Date().toLocaleDateString()}`,
         type: reportType.charAt(0).toUpperCase() + reportType.slice(1),
-        created: new Date().toISOString().split("T")[0],
+        created: result.created || new Date().toISOString().split("T")[0],
         period: `${startDate} to ${endDate}`,
         status: "Ready",
       };
       setReports([newReport, ...reports]);
-      alert(`Report generated successfully!\n${newReport.name}`);
+      showSuccessToast(`Report generated successfully! ${newReport.name}`);
       setStartDate("");
       setEndDate("");
     } catch (error) {
-      alert("Failed to generate report");
+      console.error("Report generation error:", error);
+      showErrorToast(error.message || "Failed to generate report");
     } finally {
       setLoading(false);
     }
@@ -71,30 +97,31 @@ function Reports() {
       const pdf = new jsPDF("p", "mm", "a4");
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      let yPosition = 15;
+      let yPosition = 20;
 
       const colors = {
         blue: {
-          primary: [0, 102, 204],
-          accent: [51, 153, 255],
-          dark: [0, 51, 102],
+          primary: [25, 118, 210],
+          accent: [66, 165, 245],
+          dark: [13, 71, 161],
         },
         green: {
-          primary: [0, 128, 0],
-          accent: [102, 205, 0],
-          dark: [0, 76, 0],
+          primary: [56, 142, 60],
+          accent: [102, 187, 106],
+          dark: [27, 94, 32],
         },
         purple: {
-          primary: [128, 0, 128],
-          accent: [186, 85, 211],
-          dark: [75, 0, 130],
+          primary: [106, 27, 154],
+          accent: [171, 71, 188],
+          dark: [74, 20, 140],
         },
         orange: {
-          primary: [255, 140, 0],
-          accent: [255, 165, 0],
-          dark: [204, 85, 0],
+          primary: [230, 124, 15],
+          accent: [255, 152, 0],
+          dark: [191, 144, 0],
         },
       };
+
       const typeKey = (report.type || "sales").toLowerCase();
       const autoThemeMap = {
         sales: "blue",
@@ -105,109 +132,115 @@ function Reports() {
       const autoTheme = autoThemeMap[typeKey] || "blue";
       const selectedColor = colors[autoTheme];
 
-      pdf.setFontSize(14);
-      pdf.setTextColor(
-        selectedColor.dark[0],
-        selectedColor.dark[1],
-        selectedColor.dark[2]
-      );
-      pdf.text("INVENTORY FORECAST SYSTEM", 15, yPosition);
-      pdf.setFontSize(10);
-      pdf.text("Analytics & Reporting Module", 15, yPosition + 5);
-      yPosition += 12;
+      // Header Section
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(16);
+      pdf.setTextColor(...selectedColor.dark);
+      pdf.text("INVENTORY FORECAST SYSTEM", pageWidth / 2, yPosition, {
+        align: "center",
+      });
 
-      pdf.setDrawColor(
-        selectedColor.primary[0],
-        selectedColor.primary[1],
-        selectedColor.primary[2]
-      );
-      pdf.setLineWidth(0.5);
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Analytics & Reporting Module", pageWidth / 2, yPosition + 6, {
+        align: "center",
+      });
+
+      yPosition += 14;
+      pdf.setDrawColor(...selectedColor.primary);
+      pdf.setLineWidth(0.8);
       pdf.line(15, yPosition, pageWidth - 15, yPosition);
-      yPosition += 6;
+      yPosition += 8;
 
-      pdf.setFontSize(20);
-      pdf.setTextColor(
-        selectedColor.primary[0],
-        selectedColor.primary[1],
-        selectedColor.primary[2]
-      );
+      // Title
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(18);
+      pdf.setTextColor(...selectedColor.primary);
       pdf.text(`${report.type} Report`, 15, yPosition);
       yPosition += 10;
 
+      // Report Details Box
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
-      pdf.setTextColor(100, 100, 100);
-      pdf.text(`Generated: ${new Date().toLocaleString()}`, 15, yPosition);
-      yPosition += 4;
-      pdf.text(`Report ID: #${report.id}`, 15, yPosition);
-      yPosition += 4;
-      pdf.text(`Period: ${report.period}`, 15, yPosition);
-      yPosition += 4;
-      pdf.text(
-        `Layout: Professional • Theme: Auto (${autoTheme})`,
-        15,
-        yPosition
-      );
-      yPosition += 8;
+      pdf.setTextColor(80, 80, 80);
 
-      pdf.setFillColor(240, 248, 255);
-      pdf.rect(15, yPosition, pageWidth - 30, 20, "F");
+      const details = [
+        `Generated: ${new Date().toLocaleString()}`,
+        `Report ID: #${report.id}`,
+        `Period: ${report.period}`,
+        `Theme: ${autoTheme.charAt(0).toUpperCase() + autoTheme.slice(1)}`,
+      ];
+
+      const boxHeight = 20;
+      pdf.setFillColor(245, 247, 250);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(15, yPosition, pageWidth - 30, boxHeight, "FD");
+
+      let detailY = yPosition + 3;
+      details.forEach((detail) => {
+        pdf.text(detail, 18, detailY);
+        detailY += 4.5;
+      });
+      yPosition += boxHeight + 8;
+
+      // Executive Summary
+      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
-      pdf.setTextColor(
-        selectedColor.primary[0],
-        selectedColor.primary[1],
-        selectedColor.primary[2]
-      );
-      pdf.setFont(undefined, "bold");
-      pdf.text("EXECUTIVE SUMMARY", 18, yPosition + 6);
-      pdf.setFont(undefined, "normal");
+      pdf.setTextColor(...selectedColor.primary);
+      pdf.text("EXECUTIVE SUMMARY", 15, yPosition);
+      yPosition += 6;
+
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
-      pdf.setTextColor(50, 50, 50);
-      pdf.text(
-        `This ${report.type.toLowerCase()} covers the period from ${
-          report.period
-        }`,
-        18,
-        yPosition + 12
-      );
-      pdf.text(
-        "with comprehensive analysis and actionable insights for decision making.",
-        18,
-        yPosition + 16
-      );
-      yPosition += 24;
+      pdf.setTextColor(60, 60, 60);
+      const summaryText = `This ${report.type.toLowerCase()} report covers the period from ${
+        report.period
+      } and provides comprehensive analysis with actionable insights for strategic decision making.`;
+      const summaryLines = pdf.splitTextToSize(summaryText, pageWidth - 30);
+      pdf.text(summaryLines, 15, yPosition);
+      yPosition += summaryLines.length * 4 + 6;
 
-      pdf.setFontSize(12);
-      pdf.setTextColor(
-        selectedColor.dark[0],
-        selectedColor.dark[1],
-        selectedColor.dark[2]
-      );
-
+      // Metrics Section
       const addSection = (title, metrics) => {
-        if (yPosition > pageHeight - 40) {
+        if (yPosition > pageHeight - 50) {
           pdf.addPage();
           yPosition = 15;
         }
-        pdf.setFont(undefined, "bold");
+
+        pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
-        pdf.setTextColor(
-          selectedColor.primary[0],
-          selectedColor.primary[1],
-          selectedColor.primary[2]
-        );
+        pdf.setTextColor(...selectedColor.primary);
         pdf.text(title, 15, yPosition);
         yPosition += 6;
 
-        pdf.setFont(undefined, "normal");
-        pdf.setFontSize(10);
-        pdf.setTextColor(50, 50, 50);
+        // Create metric table
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(9);
+
         metrics.forEach((metric, idx) => {
-          pdf.text(`${metric.label}: ${metric.value}`, 18, yPosition);
+          if (yPosition > pageHeight - 25) {
+            pdf.addPage();
+            yPosition = 15;
+          }
+
+          // Alternating background
+          if (idx % 2 === 0) {
+            pdf.setFillColor(250, 250, 250);
+            pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+          }
+
+          pdf.setTextColor(50, 50, 50);
+          pdf.text(metric.label, 18, yPosition);
+          pdf.setTextColor(...selectedColor.accent);
+          pdf.text(metric.value, pageWidth - 25, yPosition, { align: "right" });
           yPosition += 5;
         });
-        yPosition += 3;
+
+        yPosition += 4;
       };
 
+      // Add metrics based on report type
       switch (report.type.toLowerCase()) {
         case "sales":
           addSection("📊 Sales Overview", [
@@ -215,7 +248,7 @@ function Reports() {
             { label: "Total Orders Processed", value: "2,847" },
             { label: "Average Order Value", value: "₹43.75" },
             { label: "Top Performing Region", value: "North India" },
-            { label: "Growth Rate", value: "+12.5% YoY" },
+            { label: "Growth Rate (YoY)", value: "+12.5%" },
           ]);
           addSection("🎯 Performance Metrics", [
             { label: "Order Completion Rate", value: "98.5%" },
@@ -244,7 +277,7 @@ function Reports() {
         case "forecast":
           addSection("🤖 Forecast Accuracy", [
             { label: "Model Accuracy", value: "94.2%" },
-            { label: "MAPE (Mean Absolute % Error)", value: "5.8%" },
+            { label: "MAPE Error", value: "5.8%" },
             { label: "Confidence Score", value: "92%" },
             { label: "Forecast Horizon", value: "6 weeks" },
             { label: "Last Model Update", value: "2 hours ago" },
@@ -280,74 +313,77 @@ function Reports() {
           break;
 
         default:
-          pdf.text("Report Data", 15, yPosition);
-          yPosition += 8;
-          pdf.setFontSize(10);
-          pdf.text(`Report Type: ${report.type}`, 20, yPosition);
+          addSection("Report Data", [
+            { label: "Type", value: report.type },
+            { label: "Period", value: report.period },
+          ]);
       }
 
-      yPosition += 8;
+      yPosition += 4;
 
-      // Recommendations section
-      if (yPosition > pageHeight - 40) {
+      // Recommendations Section
+      if (yPosition > pageHeight - 50) {
         pdf.addPage();
         yPosition = 15;
       }
-      pdf.setFont(undefined, "bold");
+
+      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
-      pdf.setTextColor(
-        selectedColor.primary[0],
-        selectedColor.primary[1],
-        selectedColor.primary[2]
-      );
-      pdf.text("💡 Recommendations", 15, yPosition);
+      pdf.setTextColor(...selectedColor.primary);
+      pdf.text("💡 Key Recommendations", 15, yPosition);
       yPosition += 6;
 
-      pdf.setFont(undefined, "normal");
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
-      pdf.setTextColor(50, 50, 50);
+      pdf.setTextColor(60, 60, 60);
+
       const recommendations = [
-        "1. Review and optimize inventory levels for low-stock items",
-        "2. Implement automated alerts for critical stock threshold",
-        "3. Analyze sales trends to improve demand forecasting",
-        "4. Monitor forecast accuracy and retrain models monthly",
-        "5. Schedule regular inventory audits and reconciliation",
+        "✓ Review and optimize inventory levels for low-stock items",
+        "✓ Implement automated alerts for critical stock thresholds",
+        "✓ Analyze sales trends to improve demand forecasting",
+        "✓ Monitor forecast accuracy and retrain models regularly",
+        "✓ Schedule regular inventory audits and reconciliation",
       ];
+
       recommendations.forEach((rec) => {
         if (yPosition > pageHeight - 20) {
           pdf.addPage();
           yPosition = 15;
         }
-        pdf.text(rec, 18, yPosition);
-        yPosition += 5;
+        const lines = pdf.splitTextToSize(rec, pageWidth - 30);
+        pdf.text(lines, 18, yPosition);
+        yPosition += lines.length * 4 + 2;
       });
 
-      yPosition += 8;
+      yPosition += 4;
 
-      // Footer on last page
+      // Footer
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
-      pdf.line(15, pageHeight - 15, pageWidth - 15, pageHeight - 15);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
       pdf.text(
         "This report was automatically generated by the Inventory Forecast System",
-        15,
-        pageHeight - 10
+        pageWidth / 2,
+        pageHeight - 7,
+        { align: "center" }
       );
       pdf.text(
-        `Report Generated: ${new Date().toLocaleDateString()} | ©2026 All Rights Reserved`,
-        pageWidth - 70,
-        pageHeight - 10
+        `Generated: ${new Date().toLocaleDateString()} | ©2026 All Rights Reserved`,
+        pageWidth / 2,
+        pageHeight - 3,
+        { align: "center" }
       );
 
-      // Save PDF with custom filename
+      // Save PDF
       const filename = `report-${report.type.toLowerCase()}-${
         new Date().toISOString().split("T")[0]
-      }-auto.pdf`;
+      }.pdf`;
       pdf.save(filename);
-      alert(`✅ Report downloaded successfully!\nFile: ${filename}`);
+      showSuccessToast(`Report downloaded successfully! File: ${filename}`);
     } catch (error) {
       console.error("Report download error:", error);
-      alert("❌ Failed to download report: " + error.message);
+      showErrorToast(`Failed to download report: ${error.message}`);
     }
   };
 
