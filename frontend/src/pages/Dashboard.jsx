@@ -131,26 +131,148 @@ function Dashboard() {
       });
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("p", "mm", "a4");
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = 190;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let yPosition = 20;
 
+      const colors = {
+        primary: [25, 118, 210],
+        accent: [66, 165, 245],
+        dark: [13, 71, 161],
+      };
+
+      // Header Section
+      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(16);
-      pdf.text("Inventory Forecast Dashboard Report", 10, 10);
-      pdf.setFontSize(10);
-      pdf.text(`Generated on: ${new Date().toLocaleString()}`, 10, 18);
+      pdf.setTextColor(...colors.dark);
+      pdf.text("INVENTORY FORECAST SYSTEM", pageWidth / 2, yPosition, {
+        align: "center",
+      });
 
-      pdf.addImage(imgData, "PNG", 10, 25, imgWidth, Math.min(imgHeight, 250));
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(100, 100, 100);
+      pdf.text("Dashboard Report", pageWidth / 2, yPosition + 6, {
+        align: "center",
+      });
 
-      const yPos = 25 + Math.min(imgHeight, 250) + 10;
-      if (yPos < 280) {
-        pdf.setFontSize(12);
-        pdf.text("Summary Statistics", 10, yPos);
-        pdf.setFontSize(10);
-        pdf.text(`Total Revenue: ${stats.totalRevenue}`, 15, yPos + 8);
-        pdf.text(`Total Orders: ${stats.totalOrders}`, 15, yPos + 15);
-        pdf.text(`Active Products: ${stats.activeProducts}`, 15, yPos + 22);
-        pdf.text(`Average Order Value: ${stats.avgOrderValue}`, 15, yPos + 29);
+      yPosition += 14;
+      pdf.setDrawColor(...colors.primary);
+      pdf.setLineWidth(0.8);
+      pdf.line(15, yPosition, pageWidth - 15, yPosition);
+      yPosition += 8;
+
+      // Report Details
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 80);
+      pdf.setFillColor(245, 247, 250);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(15, yPosition, pageWidth - 30, 10, "FD");
+      pdf.text(`Generated: ${new Date().toLocaleString()}`, 18, yPosition + 3);
+      pdf.text(`Report Type: Dashboard Overview`, 18, yPosition + 7);
+      yPosition += 15;
+
+      // Dashboard Screenshot
+      pdf.addImage(
+        imgData,
+        "PNG",
+        10,
+        yPosition,
+        imgWidth,
+        Math.min(imgHeight, 120)
+      );
+      yPosition += Math.min(imgHeight, 120) + 10;
+
+      // Summary Statistics Table
+      if (yPosition > pageHeight - 60) {
+        pdf.addPage();
+        yPosition = 15;
       }
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(11);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("SUMMARY STATISTICS", 15, yPosition);
+      yPosition += 6;
+
+      // Professional Table
+      const tableX = 15;
+      const tableWidth = pageWidth - 30;
+      const colWidth1 = tableWidth * 0.65;
+      const colWidth2 = tableWidth * 0.35;
+      const rowHeight = 7;
+
+      // Table Header
+      pdf.setFillColor(...colors.primary);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(tableX, yPosition, colWidth1, rowHeight, "FD");
+      pdf.rect(tableX + colWidth1, yPosition, colWidth2, rowHeight, "FD");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Metric", tableX + 2, yPosition + 5);
+      pdf.text("Value", tableX + colWidth1 + 2, yPosition + 5);
+      yPosition += rowHeight;
+
+      // Table Data
+      const metrics = [
+        {
+          label: "Total Revenue",
+          value: stats.totalRevenue.replace(/₹/g, "Rs "),
+        },
+        { label: "Total Orders", value: stats.totalOrders },
+        { label: "Active Products", value: stats.activeProducts },
+        {
+          label: "Average Order Value",
+          value: stats.avgOrderValue.replace(/₹/g, "Rs "),
+        },
+      ];
+
+      pdf.setFont("helvetica", "normal");
+      metrics.forEach((metric, idx) => {
+        if (idx % 2 === 0) {
+          pdf.setFillColor(250, 250, 250);
+        } else {
+          pdf.setFillColor(255, 255, 255);
+        }
+
+        pdf.setDrawColor(220, 220, 220);
+        pdf.rect(tableX, yPosition, colWidth1, rowHeight, "FD");
+        pdf.rect(tableX + colWidth1, yPosition, colWidth2, rowHeight, "FD");
+
+        pdf.setTextColor(50, 50, 50);
+        pdf.text(metric.label, tableX + 2, yPosition + 5);
+        pdf.setTextColor(...colors.dark);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(metric.value, tableX + tableWidth - 2, yPosition + 5, {
+          align: "right",
+        });
+        pdf.setFont("helvetica", "normal");
+
+        yPosition += rowHeight;
+      });
+
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.line(15, pageHeight - 12, pageWidth - 15, pageHeight - 12);
+      pdf.text(
+        "This report was automatically generated by the Inventory Forecast System",
+        pageWidth / 2,
+        pageHeight - 7,
+        { align: "center" }
+      );
+      pdf.text(
+        `Generated: ${new Date().toLocaleDateString()} | ©2026 All Rights Reserved`,
+        pageWidth / 2,
+        pageHeight - 3,
+        { align: "center" }
+      );
 
       const filename = `dashboard-report-${
         new Date().toISOString().split("T")[0]

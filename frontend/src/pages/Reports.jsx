@@ -100,42 +100,15 @@ function Reports() {
       let yPosition = 20;
 
       const colors = {
-        blue: {
-          primary: [25, 118, 210],
-          accent: [66, 165, 245],
-          dark: [13, 71, 161],
-        },
-        green: {
-          primary: [56, 142, 60],
-          accent: [102, 187, 106],
-          dark: [27, 94, 32],
-        },
-        purple: {
-          primary: [106, 27, 154],
-          accent: [171, 71, 188],
-          dark: [74, 20, 140],
-        },
-        orange: {
-          primary: [230, 124, 15],
-          accent: [255, 152, 0],
-          dark: [191, 144, 0],
-        },
+        primary: [25, 118, 210],
+        accent: [66, 165, 245],
+        dark: [13, 71, 161],
       };
-
-      const typeKey = (report.type || "sales").toLowerCase();
-      const autoThemeMap = {
-        sales: "blue",
-        inventory: "green",
-        forecast: "purple",
-        comprehensive: "orange",
-      };
-      const autoTheme = autoThemeMap[typeKey] || "blue";
-      const selectedColor = colors[autoTheme];
 
       // Header Section
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(16);
-      pdf.setTextColor(...selectedColor.dark);
+      pdf.setTextColor(...colors.dark);
       pdf.text("INVENTORY FORECAST SYSTEM", pageWidth / 2, yPosition, {
         align: "center",
       });
@@ -148,7 +121,7 @@ function Reports() {
       });
 
       yPosition += 14;
-      pdf.setDrawColor(...selectedColor.primary);
+      pdf.setDrawColor(...colors.primary);
       pdf.setLineWidth(0.8);
       pdf.line(15, yPosition, pageWidth - 15, yPosition);
       yPosition += 8;
@@ -156,7 +129,7 @@ function Reports() {
       // Title
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(18);
-      pdf.setTextColor(...selectedColor.primary);
+      pdf.setTextColor(...colors.primary);
       pdf.text(`${report.type} Report`, 15, yPosition);
       yPosition += 10;
 
@@ -167,12 +140,11 @@ function Reports() {
 
       const details = [
         `Generated: ${new Date().toLocaleString()}`,
-        `Report ID: #${report.id}`,
+        `Report ID: ${report.id}`,
         `Period: ${report.period}`,
-        `Theme: ${autoTheme.charAt(0).toUpperCase() + autoTheme.slice(1)}`,
       ];
 
-      const boxHeight = 20;
+      const boxHeight = 15;
       pdf.setFillColor(245, 247, 250);
       pdf.setDrawColor(200, 200, 200);
       pdf.rect(15, yPosition, pageWidth - 30, boxHeight, "FD");
@@ -187,7 +159,7 @@ function Reports() {
       // Executive Summary
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
-      pdf.setTextColor(...selectedColor.primary);
+      pdf.setTextColor(...colors.primary);
       pdf.text("EXECUTIVE SUMMARY", 15, yPosition);
       yPosition += 6;
 
@@ -201,7 +173,7 @@ function Reports() {
       pdf.text(summaryLines, 15, yPosition);
       yPosition += summaryLines.length * 4 + 6;
 
-      // Metrics Section
+      // Metrics Section with Professional Table
       const addSection = (title, metrics) => {
         if (yPosition > pageHeight - 50) {
           pdf.addPage();
@@ -210,47 +182,70 @@ function Reports() {
 
         pdf.setFont("helvetica", "bold");
         pdf.setFontSize(11);
-        pdf.setTextColor(...selectedColor.primary);
+        pdf.setTextColor(...colors.primary);
         pdf.text(title, 15, yPosition);
         yPosition += 6;
 
-        // Create metric table
-        pdf.setFont("helvetica", "normal");
-        pdf.setFontSize(9);
+        const tableX = 15;
+        const tableWidth = pageWidth - 30;
+        const colWidth1 = tableWidth * 0.65; 
+        const colWidth2 = tableWidth * 0.35; 
+        const rowHeight = 7;
 
+        pdf.setFillColor(...colors.primary);
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(tableX, yPosition, colWidth1, rowHeight, "FD");
+        pdf.rect(tableX + colWidth1, yPosition, colWidth2, rowHeight, "FD");
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text("Metric", tableX + 2, yPosition + 5);
+        pdf.text("Value", tableX + colWidth1 + 2, yPosition + 5);
+        yPosition += rowHeight;
+
+        pdf.setFont("helvetica", "normal");
         metrics.forEach((metric, idx) => {
           if (yPosition > pageHeight - 25) {
             pdf.addPage();
             yPosition = 15;
           }
 
-          // Alternating background
           if (idx % 2 === 0) {
             pdf.setFillColor(250, 250, 250);
-            pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+          } else {
+            pdf.setFillColor(255, 255, 255);
           }
 
+          pdf.setDrawColor(220, 220, 220);
+          pdf.rect(tableX, yPosition, colWidth1, rowHeight, "FD");
+          pdf.rect(tableX + colWidth1, yPosition, colWidth2, rowHeight, "FD");
+
           pdf.setTextColor(50, 50, 50);
-          pdf.text(metric.label, 18, yPosition);
-          pdf.setTextColor(...selectedColor.accent);
-          pdf.text(metric.value, pageWidth - 25, yPosition, { align: "right" });
-          yPosition += 5;
+          pdf.text(metric.label, tableX + 2, yPosition + 5);
+          pdf.setTextColor(...colors.dark);
+          pdf.setFont("helvetica", "bold");
+          pdf.text(metric.value, tableX + tableWidth - 2, yPosition + 5, {
+            align: "right",
+          });
+          pdf.setFont("helvetica", "normal");
+
+          yPosition += rowHeight;
         });
 
-        yPosition += 4;
+        yPosition += 6;
       };
 
-      // Add metrics based on report type
       switch (report.type.toLowerCase()) {
         case "sales":
-          addSection("📊 Sales Overview", [
-            { label: "Total Sales Revenue", value: "₹1,24,500" },
+          addSection("[SALES OVERVIEW]", [
+            { label: "Total Sales Revenue", value: "Rs 1,24,500" },
             { label: "Total Orders Processed", value: "2,847" },
-            { label: "Average Order Value", value: "₹43.75" },
+            { label: "Average Order Value", value: "Rs 43.75" },
             { label: "Top Performing Region", value: "North India" },
             { label: "Growth Rate (YoY)", value: "+12.5%" },
           ]);
-          addSection("🎯 Performance Metrics", [
+          addSection("[PERFORMANCE METRICS]", [
             { label: "Order Completion Rate", value: "98.5%" },
             { label: "Average Processing Time", value: "2.3 hours" },
             { label: "Customer Satisfaction", value: "4.8/5.0" },
@@ -259,52 +254,52 @@ function Reports() {
           break;
 
         case "inventory":
-          addSection("📦 Inventory Summary", [
+          addSection("[INVENTORY SUMMARY]", [
             { label: "Total Products in Catalog", value: "486" },
             { label: "Low Stock Items", value: "42 (8.6%)" },
             { label: "Critical Stock Items", value: "8 (1.6%)" },
             { label: "Average Stock Level", value: "245 units" },
             { label: "Stock Turnover Rate", value: "4.2x/year" },
           ]);
-          addSection("⚠️ Risk Assessment", [
+          addSection("[RISK ASSESSMENT]", [
             { label: "High Risk Items", value: "12" },
             { label: "Medium Risk Items", value: "38" },
-            { label: "Inventory Value at Risk", value: "₹2,45,000" },
+            { label: "Inventory Value at Risk", value: "Rs 2,45,000" },
             { label: "Recommended Action", value: "Reorder 156 units" },
           ]);
           break;
 
         case "forecast":
-          addSection("🤖 Forecast Accuracy", [
+          addSection("[FORECAST ACCURACY]", [
             { label: "Model Accuracy", value: "94.2%" },
             { label: "MAPE Error", value: "5.8%" },
             { label: "Confidence Score", value: "92%" },
             { label: "Forecast Horizon", value: "6 weeks" },
             { label: "Last Model Update", value: "2 hours ago" },
           ]);
-          addSection("📈 Category Performance", [
-            { label: "Electronics", value: "95.8% accurate" },
-            { label: "Accessories", value: "92.3% accurate" },
-            { label: "Footwear", value: "89.5% accurate" },
-            { label: "Apparel", value: "91.2% accurate" },
-            { label: "Sports", value: "93.7% accurate" },
+          addSection("[CATEGORY PERFORMANCE]", [
+            { label: "Electronics", value: "95.8% (up)" },
+            { label: "Accessories", value: "92.3% (up)" },
+            { label: "Footwear", value: "89.5% (down)" },
+            { label: "Apparel", value: "91.2% (up)" },
+            { label: "Sports", value: "93.7% (up)" },
           ]);
           break;
 
         case "comprehensive":
-          addSection("💰 Sales Metrics", [
-            { label: "Total Revenue", value: "₹1,24,500" },
+          addSection("[SALES METRICS]", [
+            { label: "Total Revenue", value: "Rs 1,24,500" },
             { label: "Total Orders", value: "2,847" },
             { label: "Growth YoY", value: "+12.5%" },
             { label: "Top Region", value: "North India" },
           ]);
-          addSection("📦 Inventory Metrics", [
+          addSection("[INVENTORY METRICS]", [
             { label: "Total Products", value: "486" },
             { label: "Low Stock Items", value: "42" },
             { label: "Critical Items", value: "8" },
             { label: "Avg Stock Level", value: "245 units" },
           ]);
-          addSection("🤖 Forecast Metrics", [
+          addSection("[FORECAST METRICS]", [
             { label: "Model Accuracy", value: "94.2%" },
             { label: "MAPE Error", value: "5.8%" },
             { label: "Confidence", value: "92%" },
@@ -321,7 +316,6 @@ function Reports() {
 
       yPosition += 4;
 
-      // Recommendations Section
       if (yPosition > pageHeight - 50) {
         pdf.addPage();
         yPosition = 15;
@@ -329,8 +323,8 @@ function Reports() {
 
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
-      pdf.setTextColor(...selectedColor.primary);
-      pdf.text("💡 Key Recommendations", 15, yPosition);
+      pdf.setTextColor(...colors.primary);
+      pdf.text("[KEY RECOMMENDATIONS]", 15, yPosition);
       yPosition += 6;
 
       pdf.setFont("helvetica", "normal");
@@ -338,11 +332,11 @@ function Reports() {
       pdf.setTextColor(60, 60, 60);
 
       const recommendations = [
-        "✓ Review and optimize inventory levels for low-stock items",
-        "✓ Implement automated alerts for critical stock thresholds",
-        "✓ Analyze sales trends to improve demand forecasting",
-        "✓ Monitor forecast accuracy and retrain models regularly",
-        "✓ Schedule regular inventory audits and reconciliation",
+        "* Review and optimize inventory levels for low-stock items",
+        "* Implement automated alerts for critical stock thresholds",
+        "* Analyze sales trends to improve demand forecasting",
+        "* Monitor forecast accuracy and retrain models regularly",
+        "* Schedule regular inventory audits and reconciliation",
       ];
 
       recommendations.forEach((rec) => {
@@ -357,7 +351,6 @@ function Reports() {
 
       yPosition += 4;
 
-      // Footer
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
       pdf.setDrawColor(200, 200, 200);
@@ -375,7 +368,6 @@ function Reports() {
         { align: "center" }
       );
 
-      // Save PDF
       const filename = `report-${report.type.toLowerCase()}-${
         new Date().toISOString().split("T")[0]
       }.pdf`;

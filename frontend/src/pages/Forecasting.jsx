@@ -28,17 +28,29 @@ function Forecasting() {
     { week: "W6", predicted: 720, lower: 620, upper: 820 },
   ]);
 
-  const [modelMetrics] = useState({
+  const [modelMetrics, setModelMetrics] = useState({
     accuracy: "94.2%",
     mape: "5.8%",
     confidence: "92%",
-    updatedAt: "2 hours ago",
+    updatedAt: new Date(),
   });
 
   const [selectedRegion, setSelectedRegion] = useState("All India");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedPeriod, setSelectedPeriod] = useState("6 Weeks");
   const [loading, setLoading] = useState(false);
+
+  const getTimeAgo = (date) => {
+    const seconds = Math.floor((new Date() - date) / 1000);
+
+    if (seconds < 60) return `${seconds} seconds ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? "s" : ""} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days > 1 ? "s" : ""} ago`;
+  };
 
   const [categoryAccuracy] = useState([
     {
@@ -128,6 +140,13 @@ function Forecasting() {
       const result = await response.json();
       console.log("Forecast generated:", result);
 
+      setModelMetrics({
+        accuracy: result.accuracy || "94.2%",
+        mape: result.mape || "5.8%",
+        confidence: result.confidence || "92%",
+        updatedAt: new Date(),
+      });
+
       showSuccessToast(
         `Forecast generated successfully!\nRegion: ${selectedRegion}\nCategory: ${selectedCategory}\nPeriod: ${selectedPeriod}`
       );
@@ -147,13 +166,12 @@ function Forecasting() {
       let yPosition = 20;
 
       const colors = {
-        primary: [106, 27, 154],
-        accent: [171, 71, 188],
-        dark: [74, 20, 140],
-        light: [243, 229, 245],
+        primary: [25, 118, 210],
+        accent: [66, 165, 245],
+        dark: [13, 71, 161],
+        light: [227, 242, 253],
       };
 
-      // Header
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(16);
       pdf.setTextColor(...colors.dark);
@@ -205,77 +223,129 @@ function Forecasting() {
       });
       yPosition += 27;
 
-      // Forecast Data Table
+      // Forecast Data Table with Professional Borders
+      if (yPosition > pageHeight - 80) {
+        pdf.addPage();
+        yPosition = 15;
+      }
+
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...colors.primary);
-      pdf.text("📊 Forecast Data", 15, yPosition);
+      pdf.text("FORECAST DATA TABLE", 15, yPosition);
       yPosition += 6;
 
-      // Table Headers
+      // Table parameters
+      const startX = 15;
+      const tableWidth = pageWidth - 30;
+      const colWidths = {
+        week: tableWidth * 0.2,
+        predicted: tableWidth * 0.27,
+        lower: tableWidth * 0.27,
+        upper: tableWidth * 0.26,
+      };
+      const rowHeight = 7;
+
+      // Table Header
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
       pdf.setTextColor(255, 255, 255);
       pdf.setFillColor(...colors.primary);
+      pdf.setDrawColor(200, 200, 200);
 
-      const colWidths = {
-        week: 25,
-        predicted: 30,
-        lower: 30,
-        upper: 30,
-      };
-      const startX = 15;
       let currentX = startX;
-
-      pdf.rect(currentX, yPosition - 4, colWidths.week, 5, "F");
-      pdf.text("Week", currentX + 2, yPosition);
+      pdf.rect(currentX, yPosition, colWidths.week, rowHeight, "FD");
+      pdf.text("Week", currentX + colWidths.week / 2, yPosition + 5, {
+        align: "center",
+      });
       currentX += colWidths.week;
 
-      pdf.rect(currentX, yPosition - 4, colWidths.predicted, 5, "F");
-      pdf.text("Predicted", currentX + 2, yPosition);
+      pdf.rect(currentX, yPosition, colWidths.predicted, rowHeight, "FD");
+      pdf.text("Predicted", currentX + colWidths.predicted / 2, yPosition + 5, {
+        align: "center",
+      });
       currentX += colWidths.predicted;
 
-      pdf.rect(currentX, yPosition - 4, colWidths.lower, 5, "F");
-      pdf.text("Lower Bound", currentX + 2, yPosition);
+      pdf.rect(currentX, yPosition, colWidths.lower, rowHeight, "FD");
+      pdf.text("Lower Bound", currentX + colWidths.lower / 2, yPosition + 5, {
+        align: "center",
+      });
       currentX += colWidths.lower;
 
-      pdf.rect(currentX, yPosition - 4, colWidths.upper, 5, "F");
-      pdf.text("Upper Bound", currentX + 2, yPosition);
+      pdf.rect(currentX, yPosition, colWidths.upper, rowHeight, "FD");
+      pdf.text("Upper Bound", currentX + colWidths.upper / 2, yPosition + 5, {
+        align: "center",
+      });
 
-      yPosition += 6;
+      yPosition += rowHeight;
 
-      // Table Data
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(9);
-      pdf.setTextColor(50, 50, 50);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.setLineWidth(0.5);
 
       forecastData.forEach((row, idx) => {
         if (yPosition > pageHeight - 40) {
           pdf.addPage();
           yPosition = 15;
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(9);
+          pdf.setDrawColor(200, 200, 200);
+          pdf.setLineWidth(0.5);
         }
 
-        // Alternating row background
-        if (idx % 2 === 0) {
-          pdf.setFillColor(250, 250, 250);
-          pdf.rect(startX, yPosition - 3, pageWidth - 30, 4.5, "F");
-        }
+        const bgColor = idx % 2 === 0 ? [240, 248, 255] : [255, 255, 255];
 
         currentX = startX;
-        pdf.text(row.week, currentX + 2, yPosition);
-        currentX += colWidths.week;
-        pdf.text(String(row.predicted), currentX + 2, yPosition);
-        currentX += colWidths.predicted;
-        pdf.text(String(row.lower), currentX + 2, yPosition);
-        currentX += colWidths.lower;
-        pdf.text(String(row.upper), currentX + 2, yPosition);
 
-        yPosition += 4.5;
+        pdf.setFillColor(...bgColor);
+        pdf.setDrawColor(200, 200, 200);
+        pdf.rect(currentX, yPosition, colWidths.week, rowHeight, "FD");
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(row.week, currentX + colWidths.week / 2, yPosition + 5, {
+          align: "center",
+        });
+        currentX += colWidths.week;
+
+        pdf.setFillColor(...bgColor);
+        pdf.rect(currentX, yPosition, colWidths.predicted, rowHeight, "FD");
+        pdf.setTextColor(20, 20, 20);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(
+          String(row.predicted),
+          currentX + colWidths.predicted / 2,
+          yPosition + 5,
+          { align: "center" }
+        );
+        currentX += colWidths.predicted;
+
+        pdf.setFillColor(...bgColor);
+        pdf.rect(currentX, yPosition, colWidths.lower, rowHeight, "FD");
+        pdf.setTextColor(20, 20, 20);
+        pdf.text(
+          String(row.lower),
+          currentX + colWidths.lower / 2,
+          yPosition + 5,
+          { align: "center" }
+        );
+        currentX += colWidths.lower;
+
+        pdf.setFillColor(...bgColor);
+        pdf.rect(currentX, yPosition, colWidths.upper, rowHeight, "FD");
+        pdf.setTextColor(20, 20, 20);
+        pdf.text(
+          String(row.upper),
+          currentX + colWidths.upper / 2,
+          yPosition + 5,
+          { align: "center" }
+        );
+
+        yPosition += rowHeight;
       });
 
       yPosition += 6;
 
-      // Model Metrics Section
       if (yPosition > pageHeight - 45) {
         pdf.addPage();
         yPosition = 15;
@@ -284,41 +354,90 @@ function Forecasting() {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...colors.primary);
-      pdf.text("🤖 Model Performance Metrics", 15, yPosition);
+      pdf.text("MODEL PERFORMANCE METRICS", 15, yPosition);
       yPosition += 6;
 
-      pdf.setFont("helvetica", "normal");
+      const metricsTableX = 15;
+      const metricsTableWidth = pageWidth - 30;
+      const metricColWidth = metricsTableWidth * 0.65;
+      const valueColWidth = metricsTableWidth * 0.35;
+      const metricRowHeight = 7;
+
+      pdf.setFillColor(...colors.primary);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(metricsTableX, yPosition, metricColWidth, metricRowHeight, "FD");
+      pdf.rect(
+        metricsTableX + metricColWidth,
+        yPosition,
+        valueColWidth,
+        metricRowHeight,
+        "FD"
+      );
+
+      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(9);
-      pdf.setTextColor(60, 60, 60);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Metric", metricsTableX + 2, yPosition + 5);
+      pdf.text("Value", metricsTableX + metricColWidth + 2, yPosition + 5);
+      yPosition += metricRowHeight;
 
       const metrics = [
         { label: "Model Accuracy", value: modelMetrics.accuracy },
         { label: "MAPE Error", value: modelMetrics.mape },
         { label: "Confidence Score", value: modelMetrics.confidence },
-        { label: "Last Updated", value: modelMetrics.updatedAt },
+        { label: "Last Updated", value: getTimeAgo(modelMetrics.updatedAt) },
       ];
 
+      pdf.setFont("helvetica", "normal");
       metrics.forEach((metric, idx) => {
         if (yPosition > pageHeight - 25) {
           pdf.addPage();
           yPosition = 15;
+          pdf.setFont("helvetica", "normal");
         }
 
+        // Alternating row colors
         if (idx % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
-          pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+        } else {
+          pdf.setFillColor(255, 255, 255);
         }
 
+        pdf.setDrawColor(220, 220, 220);
+        pdf.rect(
+          metricsTableX,
+          yPosition,
+          metricColWidth,
+          metricRowHeight,
+          "FD"
+        );
+        pdf.rect(
+          metricsTableX + metricColWidth,
+          yPosition,
+          valueColWidth,
+          metricRowHeight,
+          "FD"
+        );
+
         pdf.setTextColor(50, 50, 50);
-        pdf.text(metric.label, 18, yPosition);
-        pdf.setTextColor(...colors.accent);
-        pdf.text(metric.value, pageWidth - 25, yPosition, { align: "right" });
-        yPosition += 5;
+        pdf.text(metric.label, metricsTableX + 2, yPosition + 5);
+        pdf.setTextColor(...colors.dark);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          metric.value,
+          metricsTableX + metricsTableWidth - 2,
+          yPosition + 5,
+          {
+            align: "right",
+          }
+        );
+        pdf.setFont("helvetica", "normal");
+
+        yPosition += metricRowHeight;
       });
 
       yPosition += 6;
 
-      // Category Accuracy
       if (yPosition > pageHeight - 45) {
         pdf.addPage();
         yPosition = 15;
@@ -327,36 +446,76 @@ function Forecasting() {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...colors.primary);
-      pdf.text("📈 Category Accuracy Performance", 15, yPosition);
+      pdf.text("CATEGORY ACCURACY PERFORMANCE", 15, yPosition);
       yPosition += 6;
 
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.setTextColor(60, 60, 60);
+      pdf.setFillColor(...colors.primary);
+      pdf.setDrawColor(200, 200, 200);
+      pdf.rect(metricsTableX, yPosition, metricColWidth, metricRowHeight, "FD");
+      pdf.rect(
+        metricsTableX + metricColWidth,
+        yPosition,
+        valueColWidth,
+        metricRowHeight,
+        "FD"
+      );
 
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text("Category", metricsTableX + 2, yPosition + 5);
+      pdf.text("Accuracy", metricsTableX + metricColWidth + 2, yPosition + 5);
+      yPosition += metricRowHeight;
+
+      pdf.setFont("helvetica", "normal");
       categoryAccuracy.forEach((cat, idx) => {
         if (yPosition > pageHeight - 25) {
           pdf.addPage();
           yPosition = 15;
+          pdf.setFont("helvetica", "normal");
         }
 
         if (idx % 2 === 0) {
           pdf.setFillColor(250, 250, 250);
-          pdf.rect(15, yPosition - 2, pageWidth - 30, 5, "F");
+        } else {
+          pdf.setFillColor(255, 255, 255);
         }
 
+        pdf.setDrawColor(220, 220, 220);
+        pdf.rect(
+          metricsTableX,
+          yPosition,
+          metricColWidth,
+          metricRowHeight,
+          "FD"
+        );
+        pdf.rect(
+          metricsTableX + metricColWidth,
+          yPosition,
+          valueColWidth,
+          metricRowHeight,
+          "FD"
+        );
+
         pdf.setTextColor(50, 50, 50);
-        pdf.text(cat.category, 18, yPosition);
-        pdf.setTextColor(...colors.accent);
-        pdf.text(`${cat.accuracy} ${cat.trend}`, pageWidth - 25, yPosition, {
-          align: "right",
-        });
-        yPosition += 5;
+        pdf.text(cat.category, metricsTableX + 2, yPosition + 5);
+
+        const trendSymbol = cat.trend === "\u2191" ? "(up)" : "(down)";
+        pdf.setTextColor(...colors.dark);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          `${cat.accuracy} ${trendSymbol}`,
+          metricsTableX + metricsTableWidth - 2,
+          yPosition + 5,
+          { align: "right" }
+        );
+        pdf.setFont("helvetica", "normal");
+
+        yPosition += metricRowHeight;
       });
 
       yPosition += 6;
 
-      // AI Insights Section
       if (yPosition > pageHeight - 45) {
         pdf.addPage();
         yPosition = 15;
@@ -365,7 +524,7 @@ function Forecasting() {
       pdf.setFont("helvetica", "bold");
       pdf.setFontSize(11);
       pdf.setTextColor(...colors.primary);
-      pdf.text("💡 AI-Driven Insights", 15, yPosition);
+      pdf.text("[AI-DRIVEN INSIGHTS]", 15, yPosition);
       yPosition += 6;
 
       pdf.setFont("helvetica", "normal");
@@ -376,10 +535,19 @@ function Forecasting() {
         if (yPosition > pageHeight - 30) {
           pdf.addPage();
           yPosition = 15;
+          pdf.setFont("helvetica", "normal");
+          pdf.setFontSize(9);
+          pdf.setTextColor(60, 60, 60);
         }
 
         pdf.setFont("helvetica", "bold");
-        pdf.text(`${insight.icon} ${insight.title}`, 18, yPosition);
+        const insightLabel =
+          insight.type === "recommendation"
+            ? "[ALERT]"
+            : insight.type === "insight"
+            ? "[INSIGHT]"
+            : "[RISK]";
+        pdf.text(`${insightLabel} ${insight.title}`, 18, yPosition);
         yPosition += 4;
 
         pdf.setFont("helvetica", "normal");
@@ -388,7 +556,6 @@ function Forecasting() {
         yPosition += lines.length * 3.5 + 3;
       });
 
-      // Footer
       pdf.setFontSize(8);
       pdf.setTextColor(150, 150, 150);
       pdf.setDrawColor(200, 200, 200);
@@ -406,7 +573,6 @@ function Forecasting() {
         { align: "center" }
       );
 
-      // Save PDF
       const filename = `forecast-${selectedRegion
         .replace(/\s+/g, "-")
         .toLowerCase()}-${new Date().toISOString().split("T")[0]}.pdf`;
@@ -446,7 +612,10 @@ function Forecasting() {
         <StatCard title="Model Accuracy" value={modelMetrics.accuracy} />
         <StatCard title="MAPE Error" value={modelMetrics.mape} />
         <StatCard title="Confidence Score" value={modelMetrics.confidence} />
-        <StatCard title="Last Updated" value={modelMetrics.updatedAt} />
+        <StatCard
+          title="Last Updated"
+          value={getTimeAgo(modelMetrics.updatedAt)}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
