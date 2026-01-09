@@ -145,6 +145,7 @@ Inventory-forcast/
 │   └── package.json
 ```
 
+<img width="1918" height="866" alt="image" src="https://github.com/user-attachments/assets/60bb3f9a-8d7c-41ed-862c-4ad7dff3d7f2" />
 
 ### Environment Variables
 
@@ -166,5 +167,4 @@ VITE_ENABLE_PRODUCT_MANAGEMENT=true
 
 MIT License
 
-
-**Built with ❤️ Gaurav
+Built with ❤️ Gaurav
