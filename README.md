@@ -2,6 +2,8 @@
 
 AI-powered inventory management system that forecasts inventory needs based on sales history and trend analysis.
 
+**Live Demo URL**: https://stock-mind-beta.vercel.app/
+
 ## 🚀 Features
 
 ### ✅ Implemented
@@ -28,12 +30,12 @@ AI-powered inventory management system that forecasts inventory needs based on s
 ### Frontend
 - **React.js**: Component-based UI framework
 - **Vite**: Fast build tool and dev server
-- **Tailwind CSS **: Utility-first CSS framework
-- **Recharts **: Chart visualization library *(Note: Spec requested Chart.js, but Recharts provides better React integration)*
-- **react-router-dom 6.28**: Client-side routing
-- **jsPDF 2.5**: PDF generation
-- **react-toastify 10.0**: Toast notifications
-- **Lucide React 0.376**: Modern icon library
+- **Tailwind CSS**: Utility-first CSS framework
+- **Recharts**: Chart visualization library *(Note: Spec requested Chart.js, but Recharts provides better React integration)*
+- **react-router-dom**: Client-side routing
+- **jsPDF**: PDF generation
+- **react-toastify**: Toast notifications
+- **Lucide React**: Modern icon library
 
 ### Backend
 - **Node.js**: JavaScript runtime
@@ -141,8 +143,6 @@ Inventory-forcast/
 │   │   ├── main.jsx              # Entry point
 │   │   └── index.css             # Global styles
 │   └── package.json
-│
-└── sample-sales-data.csv          # Sample dataset for testing
 ```
 
 
