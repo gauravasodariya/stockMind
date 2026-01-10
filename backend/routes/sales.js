@@ -1,5 +1,4 @@
 import express from "express";
-import multer from "multer";
 import {
   getAllSales,
   uploadSalesCSV,
@@ -7,10 +6,10 @@ import {
 } from "../controllers/salesController.js";
 
 const router = express.Router();
-const upload = multer({ storage: multer.memoryStorage() });
 
 router.get("/", getAllSales);
 router.get("/range", getSalesByDateRange);
-router.post("/upload", upload.single("file"), uploadSalesCSV);
+// Accept JSON payloads from the dashboard CSV importer
+router.post("/upload", uploadSalesCSV);
 
 export default router;

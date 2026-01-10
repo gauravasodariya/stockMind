@@ -16,6 +16,7 @@ import {
   showSuccessToast,
   showErrorToast,
 } from "../utils/toastNotification.jsx";
+import apiClient from "../utils/api";
 import StatCard from "../components/StatCard";
 import ChartCard from "../components/ChartCard";
 import DataTable from "../components/DataTable";
@@ -323,23 +324,17 @@ function Dashboard() {
           }
         }
 
-        const response = await fetch("/api/sales/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sales: data }),
-        });
-
-        const result = await response.json();
-        if (response.ok) {
-          showSuccessToast(
-            `CSV imported successfully! ${data.length} rows imported to database`
-          );
-        } else {
-          showErrorToast(`Import failed: ${result.error || "Unknown error"}`);
-        }
+        const response = await apiClient.post("/sales/upload", { sales: data });
+        const result = response?.data || {};
+        showSuccessToast(
+          `CSV imported successfully! ${
+            result.count || data.length
+          } rows imported to database`
+        );
       } catch (error) {
         console.error("CSV import error:", error);
-        showErrorToast("Failed to import CSV: " + error.message);
+        const message = error?.response?.data?.error || error.message;
+        showErrorToast("Failed to import CSV: " + message);
       } finally {
         setLoading(false);
       }
